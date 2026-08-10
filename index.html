@@ -209,12 +209,9 @@ header h1{font-size:1.1rem;font-weight:700;flex:1}
 <div class="modal-overlay" id="settings-modal">
   <div class="modal">
     <h2>⚙ Settings</h2>
-    <label>Claude API Key (for AI writing feedback)</label>
-    <input type="password" id="api-key-input" placeholder="sk-ant-...">
-    <p style="font-size:.78rem;color:#718096;margin-bottom:14px">Stored only in this browser. Get a key at console.anthropic.com</p>
+    <p style="font-size:.88rem;color:#2d3748;margin-bottom:14px">AI writing feedback and progress sync are handled automatically through the server. No setup needed.</p>
     <div class="modal-btns">
-      <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
-      <button class="btn-primary" onclick="saveSettings()">Save</button>
+      <button class="btn-primary" onclick="closeSettings()">Close</button>
     </div>
   </div>
 </div>
@@ -284,6 +281,46 @@ function save(){
   localStorage.setItem('joey_quiz',JSON.stringify(quizState));
   updateProgressBar();
   renderSidebar();
+  syncToCloud();
+}
+
+let syncTimer=null;
+function syncToCloud(){
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(async()=>{
+    try{
+      await fetch('/api/progress',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          progress,writings,grammar:grammarState,quiz:quizState,
+          lastSync:new Date().toISOString()
+        })
+      });
+    }catch(e){}
+  },2000);
+}
+
+async function loadFromCloud(){
+  try{
+    const r=await fetch('/api/progress');
+    if(!r.ok) return;
+    const d=await r.json();
+    if(!d||!d.lastSync) return;
+    const cloudTime=new Date(d.lastSync).getTime();
+    const localTime=parseInt(localStorage.getItem('joey_last_sync')||'0');
+    if(cloudTime>localTime){
+      if(d.progress) Object.assign(progress,d.progress);
+      if(d.writings) Object.assign(writings,d.writings);
+      if(d.grammar) Object.assign(grammarState,d.grammar);
+      if(d.quiz) Object.assign(quizState,d.quiz);
+      localStorage.setItem('joey_last_sync',cloudTime.toString());
+      localStorage.setItem('joey_progress',JSON.stringify(progress));
+      localStorage.setItem('joey_writings',JSON.stringify(writings));
+      localStorage.setItem('joey_grammar',JSON.stringify(grammarState));
+      localStorage.setItem('joey_quiz',JSON.stringify(quizState));
+    }
+  }catch(e){}
 }
 
 function updateProgressBar(){
@@ -584,22 +621,20 @@ function saveWrite(k){
 async function getAIFeedback(k){
   const ta=document.getElementById('write_'+k);
   if(!ta||!ta.value.trim()){alert('Please write something first!');return;}
-  const apiKey=localStorage.getItem('joey_api_key');
-  if(!apiKey){alert('Please add your Claude API key in Settings first.');return;}
   const w=UNITS[curUnit].weeks[curWeek];
   const prompt=`You are a warm, encouraging writing teacher for a bilingual 10-year-old student (English/Chinese). The student wrote this response:\n\nPrompt: "${w.write.prompt}"\n\nStudent's writing:\n"${ta.value}"\n\nGive: (1) Two specific things done well, (2) One clear improvement suggestion, (3) An encouraging closing sentence. Keep it friendly, simple, under 180 words. No bullet points.`;
   const fbDiv=document.getElementById('aifb_'+k)||document.querySelector('.ai-feedback');
   if(fbDiv){fbDiv.style.display='block';fbDiv.textContent='🤖 Getting feedback...';}
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:350,messages:[{role:'user',content:prompt}]})
+    const r=await fetch('/api/feedback',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt})
     });
     const d=await r.json();
     const text=d.content?.[0]?.text||'Could not get feedback.';
     if(fbDiv) fbDiv.textContent=text;
     writings[k+'_fb']=text; save();
-  }catch(e){if(fbDiv) fbDiv.textContent='Error: '+e.message;}
+  }catch(e){if(fbDiv) fbDiv.textContent='AI feedback is only available on the online version of the course.';}
 }
 
 // ── WORDS ──
@@ -690,6 +725,7 @@ function saveSettings(){const k=document.getElementById('api-key-input').value.t
 // ── INIT ──
 renderSidebar();
 updateProgressBar();
+loadFromCloud().then(()=>{renderHome();renderSidebar();updateProgressBar();});
 </script>
 </body>
 </html>
