@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Joey's Bridge Program — Parent Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh;color:#1a202c}
+header{background:linear-gradient(135deg,#1a365d,#2c7a7b);color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+header h1{font-size:1.1rem;font-weight:700}
+#sync-time{font-size:.78rem;color:rgba(255,255,255,.75)}
+.container{max-width:960px;margin:0 auto;padding:24px 20px}
+.section{background:#fff;border-radius:14px;padding:22px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.section h2{font-size:1rem;font-weight:700;color:#2b6cb0;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #e2e8f0}
+/* Progress grid */
+.units-grid{display:flex;flex-direction:column;gap:10px}
+.unit-row{display:flex;align-items:center;gap:12px}
+.unit-label{font-size:.82rem;font-weight:600;color:#4a5568;width:200px;flex-shrink:0}
+.week-dots{display:flex;gap:6px}
+.week-dot{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;background:#e2e8f0;color:#718096;cursor:default;position:relative}
+.week-dot.done{background:#68d391;color:#276749}
+.week-dot.partial{background:#fbd38d;color:#744210}
+.week-dot:hover .tooltip{display:block}
+.tooltip{display:none;position:absolute;bottom:38px;left:50%;transform:translateX(-50%);background:#1a202c;color:#fff;font-size:.7rem;padding:4px 8px;border-radius:6px;white-space:nowrap;z-index:10}
+/* Quiz scores */
+.quiz-table{width:100%;border-collapse:collapse;font-size:.88rem}
+.quiz-table th{text-align:left;padding:8px 12px;background:#f7fafc;color:#718096;font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em}
+.quiz-table td{padding:8px 12px;border-top:1px solid #e2e8f0}
+.score-badge{display:inline-block;padding:2px 10px;border-radius:99px;font-weight:700;font-size:.8rem}
+.score-high{background:#f0fff4;color:#276749}
+.score-mid{background:#fffbeb;color:#744210}
+.score-low{background:#fff5f5;color:#c53030}
+.score-na{background:#f7fafc;color:#a0aec0}
+/* Writing samples */
+.writing-entry{border:1px solid #e2e8f0;border-radius:10px;margin-bottom:12px;overflow:hidden}
+.writing-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f7fafc;cursor:pointer;user-select:none}
+.writing-hdr h3{font-size:.88rem;font-weight:600;color:#2d3748}
+.writing-hdr span{font-size:.75rem;color:#718096}
+.writing-body{display:none;padding:14px;border-top:1px solid #e2e8f0}
+.writing-body.open{display:block}
+.writing-text{font-size:.88rem;line-height:1.8;color:#2d3748;white-space:pre-wrap;background:#f9fafb;border-radius:8px;padding:12px;margin-bottom:8px}
+.writing-fb{font-size:.82rem;line-height:1.7;color:#744210;background:#fffbeb;border-left:3px solid #f6ad55;padding:10px 12px;border-radius:0 8px 8px 0}
+.writing-fb-label{font-size:.72rem;font-weight:700;color:#92400e;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.empty{color:#a0aec0;font-size:.88rem;font-style:italic}
+/* Auth screen */
+#auth{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f0f4f8}
+.auth-card{background:#fff;border-radius:16px;padding:32px;width:340px;box-shadow:0 4px 20px rgba(0,0,0,.1);text-align:center}
+.auth-card h2{font-size:1.2rem;font-weight:700;color:#1a202c;margin-bottom:6px}
+.auth-card p{font-size:.88rem;color:#718096;margin-bottom:20px}
+.auth-err{color:#e53e3e;font-size:.82rem;margin-top:8px;display:none}
+#token-input{width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:.95rem;margin-bottom:12px}
+#token-input:focus{outline:none;border-color:#2b6cb0}
+#auth-btn{width:100%;padding:10px;background:#2b6cb0;color:#fff;border:none;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer}
+#auth-btn:hover{background:#2c5282}
+#dashboard{display:none}
+.legend{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:.78rem;color:#718096}
+.legend-dot{width:14px;height:14px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<div id="auth">
+  <div class="auth-card">
+    <div style="font-size:2.5rem;margin-bottom:12px">🇺🇸</div>
+    <h2>Joey's Bridge Program</h2>
+    <p>Parent Dashboard — enter your access token to continue</p>
+    <input type="password" id="token-input" placeholder="Access token" onkeydown="if(event.key==='Enter')login()">
+    <button id="auth-btn" onclick="login()">View Dashboard</button>
+    <div class="auth-err" id="auth-err">Invalid token. Please try again.</div>
+  </div>
+</div>
+
+<div id="dashboard">
+  <header>
+    <h1>🇺🇸 Joey's U.S. Bridge Program — Parent Dashboard</h1>
+    <span id="sync-time">Loading...</span>
+  </header>
+  <div class="container">
+    <div class="section">
+      <h2>📊 Overall Progress</h2>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#68d391"></div>Week complete</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#fbd38d"></div>Quiz attempted</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#e2e8f0"></div>Not started</div>
+      </div>
+      <div class="units-grid" id="progress-grid"></div>
+    </div>
+    <div class="section">
+      <h2>❓ Quiz Scores</h2>
+      <table class="quiz-table">
+        <thead><tr><th>Unit</th><th>Week</th><th>Topic</th><th>Score</th><th>Correct / Total</th></tr></thead>
+        <tbody id="quiz-tbody"></tbody>
+      </table>
+    </div>
+    <div class="section">
+      <h2>✍ Writing Samples</h2>
+      <div id="writings-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const UNITS_META = [
+  {id:1,title:'The 50 States & Regions',icon:'🗺',weeks:['Geography Intro','The Northeast','The Southeast','The Midwest & Southwest','The West']},
+  {id:2,title:'American Symbols & Landmarks',icon:'🦅',weeks:['National Symbols','The American Flag','Statues & Monuments','National Bird & Animals','American Holidays']},
+  {id:3,title:'How Government Works',icon:'🏛',weeks:['Democracy & Voting','The Three Branches','Checks & Balances','Local Government','Elections']},
+  {id:4,title:'Rights & Responsibilities',icon:'⚖',weeks:['The Bill of Rights','Citizenship','Community Service','Freedom of Speech','Being a Good Citizen']},
+  {id:5,title:'American History Heroes',icon:'⭐',weeks:['Founding Fathers','Abraham Lincoln','Martin Luther King Jr.','Susan B. Anthony','Modern Heroes']},
+  {id:6,title:'American Culture & Arts',icon:'🎨',weeks:['American Holidays','Jazz & Music','Food & Traditions','Sports & Pastimes','Year in Review']},
+];
+
+let token = '';
+
+async function login(){
+  const t = document.getElementById('token-input').value.trim();
+  if(!t) return;
+  document.getElementById('auth-btn').textContent = 'Loading...';
+  try{
+    const r = await fetch('/api/dashboard',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token:t})
+    });
+    if(!r.ok) throw new Error('invalid');
+    const data = await r.json();
+    token = t;
+    document.getElementById('auth').style.display='none';
+    document.getElementById('dashboard').style.display='block';
+    renderDashboard(data);
+  } catch(e){
+    document.getElementById('auth-err').style.display='block';
+    document.getElementById('auth-btn').textContent='View Dashboard';
+  }
+}
+
+function renderDashboard(data){
+  const prog = data.progress||{};
+  const quiz = data.quiz||{};
+  const writings = data.writings||{};
+  const lastSync = data.lastSync ? new Date(data.lastSync).toLocaleString() : 'Never';
+  document.getElementById('sync-time').textContent = 'Last synced: ' + lastSync;
+
+  // Progress grid
+  const grid = document.getElementById('progress-grid');
+  grid.innerHTML = UNITS_META.map(u=>{
+    const dots = u.weeks.map((wTitle,wi)=>{
+      const k = `u${u.id}w${wi+1}`;
+      const done = prog[k]?.complete;
+      const quizDone = quiz[k+'_q']?.submitted;
+      const cls = done?'done':quizDone?'partial':'';
+      return `<div class="week-dot ${cls}">W${wi+1}<div class="tooltip">${wTitle}${done?' ✓':''}</div></div>`;
+    }).join('');
+    return `<div class="unit-row">
+      <div class="unit-label">${u.icon} Unit ${u.id}: ${u.title}</div>
+      <div class="week-dots">${dots}</div>
+    </div>`;
+  }).join('');
+
+  // Quiz scores
+  const tbody = document.getElementById('quiz-tbody');
+  let rows = '';
+  UNITS_META.forEach(u=>{
+    u.weeks.forEach((wTitle,wi)=>{
+      const k = `u${u.id}w${wi+1}`;
+      const qs = quiz[k+'_q'];
+      let scoreHtml = '<span class="score-badge score-na">Not taken</span>';
+      let fraction = '—';
+      if(qs?.submitted){
+        // Count correct — need to know answers but we only have user selections
+        // Show submitted indicator
+        const answered = Object.keys(qs.answers||{}).length;
+        scoreHtml = `<span class="score-badge score-mid">Submitted</span>`;
+        fraction = `${answered} answered`;
+      }
+      rows += `<tr><td>Unit ${u.id}</td><td>Week ${wi+1}</td><td>${wTitle}</td><td>${scoreHtml}</td><td>${fraction}</td></tr>`;
+    });
+  });
+  tbody.innerHTML = rows;
+
+  // Writing samples
+  const wList = document.getElementById('writings-list');
+  let wHtml = '';
+  let found = false;
+  UNITS_META.forEach(u=>{
+    u.weeks.forEach((wTitle,wi)=>{
+      const k = `u${u.id}w${wi+1}`;
+      const text = writings[k+'_w'];
+      const fb = writings[k+'_w_fb'];
+      if(text){
+        found = true;
+        wHtml += `<div class="writing-entry">
+          <div class="writing-hdr" onclick="toggleWriting(this)">
+            <h3>${u.icon} Unit ${u.id}, Week ${wi+1} — ${wTitle}</h3>
+            <span>${text.length} chars ${fb?'· AI feedback ✓':''} ▼</span>
+          </div>
+          <div class="writing-body">
+            <div class="writing-text">${escHtml(text)}</div>
+            ${fb?`<div class="writing-fb-label">AI Feedback</div><div class="writing-fb">${escHtml(fb)}</div>`:''}
+          </div>
+        </div>`;
+      }
+    });
+  });
+  wList.innerHTML = found ? wHtml : '<p class="empty">No writing samples yet.</p>';
+}
+
+function toggleWriting(hdr){
+  hdr.nextElementSibling.classList.toggle('open');
+}
+
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Auto-login if token in URL
+const urlToken = new URLSearchParams(window.location.search).get('t');
+if(urlToken){
+  document.getElementById('token-input').value = urlToken;
+  login();
+}
+</script>
+</body>
+</html>
