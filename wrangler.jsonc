@@ -3,7 +3,7 @@
   // Deploy with: wrangler pages deploy .
   // Or connect this repo to Cloudflare Pages in the dashboard for auto-deploy on every git push.
 
-  "name": "joey-year1",
+  "name": "joey-us-bridge-program",
 
   // Static site — no build step needed, index.html is already built
   "pages_build_output_dir": ".",
