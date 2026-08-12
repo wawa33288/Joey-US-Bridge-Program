@@ -4,5 +4,11 @@
   "main": "_worker.js",
   "assets": {
     "directory": "."
-  }
+  },
+  "kv_namespaces": [
+    {
+      "binding": "JOEY_PROGRESS",
+      "id": "a4611376a51247b791e0b5454bf4b019"
+    }
+  ]
 }
